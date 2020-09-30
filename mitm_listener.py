@@ -3,8 +3,10 @@
 import sys, socket, thread, ssl
 from select import select
 
-HOST = '0.0.0.0'
-PORT = 5222
+BINDHOST = '0.0.0.0'
+BINDPORT = 5222
+TARGETHOST = '127.0.0.1'
+TARGETPORT = 25
 BUFSIZE = 4096
 
 def wrap_sockets(client_sock, server_sock, certfile, keyfile):
@@ -60,21 +62,24 @@ def do_relay(client_sock, server_sock, certfile, keyfile):
 # probably not for other protocols.)
 def child(clientsock,target,certfile,keyfile):
   targetsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  targetsock.connect((target,PORT))
+  targetsock.connect((target,TARGETPORT))
 
   do_relay(clientsock, targetsock, certfile, keyfile)
 
 if __name__=='__main__': 
   if len(sys.argv) < 4:
-    sys.exit('Usage: %s TARGETHOST <KEYFILE> <CERTFILE>\n' % sys.argv[0])
-  target = sys.argv[1]
-  keyfile = sys.argv[2]
-  certfile = sys.argv[3]
+    sys.exit('Usage: %s <BINDHOST> <BINDPORT> <TARGETHOST> <TARGETPORT> <KEYFILE> <CERTFILE>\n' % sys.argv[0])
+  BINDHOST = sys.argv[1]
+  BINDPORT = int(sys.argv[2])
+  TARGETHOST = sys.argv[3]
+  TARGETPORT = int(sys.argv[4])
+  keyfile = sys.argv[5]
+  certfile = sys.argv[6]
   myserver = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  myserver.bind((HOST, PORT))
+  myserver.bind((BINDHOST, BINDPORT))
   myserver.listen(2)
-  print 'LISTENER ready on port', PORT
+  print 'LISTENER ready on %s:%s' % (BINDHOST, BINDPORT)
   while 1:
     client, addr = myserver.accept()
     print 'CLIENT CONNECT from:', addr
-    thread.start_new_thread(child, (client,target,certfile,keyfile))
+    thread.start_new_thread(child, (client,TARGETHOST,certfile,keyfile))
